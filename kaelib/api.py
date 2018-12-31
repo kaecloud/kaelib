@@ -68,7 +68,7 @@ def recv_ws(ws):
 
 class KaeAPI:
     def __init__(self, host, version='v1', timeout=None,
-                 password='', auth_token='', cluster='default'):
+                 auth_token='', cluster='default'):
         self.host = host
         self.version = version
         self.timeout = timeout
