@@ -123,11 +123,37 @@ class KaeAPI:
             except (ValueError, TypeError):
                 raise KaeAPIError(500, msg)
 
+    def list_app(self):
+        return self.request('app/')
+
     def get_app(self, appname):
         return self.request('app/%s' % appname)
 
     def delete_app(self, appname):
         return self.request('app/%s' % appname, method='DELETE')
+
+    def get_app_users(self, appname):
+        return self.request('app/%s/users' % appname)
+
+    def grant_user(self, appname, username=None, email=None):
+        params = {}
+        if username is not None:
+            params['username'] = username
+        elif email is not None:
+            params['email'] = email
+        else:
+            raise ValueError("you need pass username or email")
+        return self.request('app/%s/users' % appname, method='PUT', json=params)
+
+    def revoke_user(self, appname, username=None, email=None):
+        params = {}
+        if username is not None:
+            params['username'] = username
+        elif email is not None:
+            params['email'] = email
+        else:
+            raise ValueError("you need pass username or email")
+        return self.request('app/%s/users' % appname, method='DELETE', json=params)
 
     def get_app_pods(self, appname, canary=False, watch=False):
         params = {
@@ -187,6 +213,30 @@ class KaeAPI:
         }
         return self.request('app/%s/configmap' % appname, method="POST", json=payload)
 
+    def list_app_yaml(self, appname):
+        return self.request('app/%s/yaml' % appname)
+
+    def create_app_yaml(self, appname, name, specs_text, comment=None):
+        params = {
+            'name': name,
+            'specs_text': specs_text,
+        }
+        if comment is not None:
+            params['comment'] = comment
+        return self.request('app/%s/yaml' % appname, method='POST', json=params)
+
+    def update_app_yaml(self, appname, name, new_name, specs_text, comment=None):
+        params = {
+            'name': new_name,
+            'specs_text': specs_text,
+        }
+        if comment is not None:
+            params['comment'] = comment
+        return self.request('app/%s/name/%s/yaml' % (appname, name), method='POST', json=params)
+
+    def delete_app_yaml(self, appname, name):
+        return self.request('app/%s/name/%s/yaml' % (appname, name), method='DELETE')
+
     def register_release(self, appname, tag, git, specs_text, branch=None, force=False):
         payload = {
             'appname': appname,
@@ -238,6 +288,17 @@ class KaeAPI:
         payload = {k: v for k, v in payload.items() if v is not None}
         return self.request('app/%s/deploy' % appname, method='PUT', data=payload)
 
+    def undeploy_app(self, appname, cluster=None):
+        """undeploy app.
+        appname: App name
+        """
+        if cluster is None:
+            cluster = self.cluster
+        payload = {
+            'cluster': cluster,
+        }
+        return self.request('app/%s/undeploy' % appname, method='DELETE', data=payload)
+
     def deploy_app_canary(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None):
         """deploy canary version of specified app
         appname:
@@ -258,6 +319,19 @@ class KaeAPI:
 
         payload = {k: v for k, v in payload.items() if v is not None}
         return self.request('app/%s/canary/deploy' % appname, method='PUT', data=payload)
+
+    def undeploy_app_canary(self, appname, cluster=None):
+        """undeploy canary version of specified app
+        appname:
+        """
+        if cluster is None:
+            cluster = self.cluster
+        payload = {
+            'cluster': cluster,
+        }
+
+        payload = {k: v for k, v in payload.items() if v is not None}
+        return self.request('app/%s/canary/undeploy' % appname, method='DELETE', data=payload)
 
     def delete_app_canary(self, appname):
         payload = {
@@ -292,6 +366,17 @@ class KaeAPI:
             'rules': rules,
         }
         return self.request('app/%s/abtesting' % appname, method='PUT', json=payload)
+
+    def stop_container(self, appname, podname, container, namespace, cluster=None):
+        if cluster is None:
+            cluster = self.cluster
+        payload = {
+            'cluster': cluster,
+            'podname': podname,
+            'container': container,
+            'namespace': namespace,
+        }
+        return self.request('app/%s/container/stop' % appname, method='POST', json=payload)
 
     def create_job(self, specs_text=None, **kwargs):
         payload = kwargs
