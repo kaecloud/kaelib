@@ -35,7 +35,10 @@ pytest_runner = ['pytest-runner'] if needs_pytest else []
 
 requires = [
     'requests>=2.20.0',
-    'websocket-client==0.48.0',
+    'websocket-client==0.54.0',
+    'humanfriendly==4.17',
+    'addict==2.2.0',
+    'marshmallow==2.17.0',
 ]
 root_dir = dirname(abspath(__file__))
 
