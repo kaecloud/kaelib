@@ -55,6 +55,7 @@ setup(
     install_requires=requires,
     setup_requires=pytest_runner,
     tests_require=[
+        "pyyaml",
         "pytest-cov",
         "pytest-randomly",
         "pytest-mock",

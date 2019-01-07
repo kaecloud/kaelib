@@ -38,7 +38,6 @@ def validate_app_type(ss):
         raise ValidationError("app type should be `web`, `worker`")
 
 
-
 def validate_tag(tag):
     regex = re.compile(r'[\w][\w.-]{0,127}$')
     if regex.match(tag) is None:
@@ -170,6 +169,9 @@ def validate_docker_volumes(lst):
     for l in lst:
         if ':' not in l:
             raise ValidationError('wrong docker volumes')
+        parts = l.split(':', 1)
+        if (not os.path.isabs(parts[0])) or (not os.path.isabs(parts[1])):
+            raise ValidationError('host path and container path must be absolute path')
 
 
 class Mountpoint(StrictSchema):
@@ -306,7 +308,7 @@ service_schema = ServiceSchema()
 class TestEntrypointSchema(StrictSchema):
     image = fields.Str()
     volumes = fields.List(fields.Str(), validate=validate_docker_volumes)
-    script = fields.Str(required=True)
+    scripts = fields.List(fields.Str(), required=True)
 
 
 class TestSchema(StrictSchema):

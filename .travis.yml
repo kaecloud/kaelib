@@ -1,0 +1,13 @@
+language: python
+sudo: false
+python:
+  - "3.5"
+  - "3.6"
+
+notifications:
+  email:
+    on_failure: always
+    on_success: never
+
+script:
+  - python setup.py pytest
