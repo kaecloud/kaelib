@@ -7,6 +7,9 @@ notifications:
   email:
     on_failure: always
     on_success: never
+install:
+  - pip install -U pip setuptools twine
+
 script:
 - python setup.py pytest
 deploy:

@@ -308,7 +308,7 @@ service_schema = ServiceSchema()
 class TestEntrypointSchema(StrictSchema):
     image = fields.Str()
     volumes = fields.List(fields.Str(), validate=validate_docker_volumes)
-    scripts = fields.List(fields.Str(), required=True)
+    script = fields.List(fields.Str(), required=True)
 
 
 class TestSchema(StrictSchema):
