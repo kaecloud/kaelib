@@ -104,7 +104,7 @@ class KaeAPI:
             raise KaeAPIError(500, 'BUG: Console did not return json, body {}'.format(resp.text))
         return response
 
-    def request_ws(self, path, params=None, data=None, json=None):
+    def request_ws(self, path, params=None, data=None, json=None, ignore_decode_err=False):
         url = urljoin(self.base, path)
         url = re.sub(r'^http', 'ws', url)
         options = {
@@ -115,11 +115,15 @@ class KaeAPI:
         ws = websocket.create_connection(url, **options)
         ws.send(jsonlib.dumps(json))
         for msg in recv_ws(ws):
-            # print('-----------------')
-            # print(msg)
             try:
                 data = jsonlib.loads(msg)
                 yield data
+            except jsonlib.JSONDecodeError:
+                if ignore_decode_err:
+                    # print("decode json error, ignore it")
+                    continue
+                else:
+                    raise KaeAPIError(500, "json decode error {}".format(msg))
             except (ValueError, TypeError):
                 raise KaeAPIError(500, msg)
 
@@ -261,12 +265,13 @@ class KaeAPI:
         }
         return self.request('app/%s/renew' % appname, method='PUT', json=payload)
 
-    def build_app(self, appname, tag, block=False):
+    def build_app(self, appname, tag, block=False, ignore_decode_err=True):
         payload = {
             'tag': tag,
             'block': block,
         }
-        return self.request_ws('ws/app/%s/build' % appname, json=payload)
+        return self.request_ws('ws/app/%s/build' % appname, json=payload,
+                               ignore_decode_err=ignore_decode_err)
 
     def deploy_app(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None):
         """deploy app.
