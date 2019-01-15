@@ -378,6 +378,9 @@ class KaeAPI:
         }
         return self.request('app/%s/container/stop' % appname, method='POST', json=payload)
 
+    def kill_build_task(self, appname):
+        return self.request('app/%s/build/kill' % appname, method='DELETE')
+
     def create_job(self, specs_text=None, **kwargs):
         payload = kwargs
         if specs_text:
