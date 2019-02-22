@@ -284,6 +284,11 @@ class ServicePort(StrictSchema):
     protocol = fields.Str(validate=validate_protocol, missing="TCP")
 
 
+class HostAliases(StrictSchema):
+    ip = fields.Str(required=True)
+    hostnames = fields.List(fields.Str(), required=True)
+
+
 class ServiceSchema(StrictSchema):
     user = fields.Str(missing="root")
     registry = fields.Str()
@@ -297,6 +302,7 @@ class ServiceSchema(StrictSchema):
     minReadySeconds = fields.Int()
     progressDeadlineSeconds = fields.Int()
     strategy = fields.Nested(UpdateStrategy)
+    hostAliases = fields.List(fields.Nested(hostAliases))
 
     containers = fields.List(fields.Nested(ContainerSpec), required=True)
     volumes = fields.List(fields.Dict(), validate=validate_pod_volumes, missing=[])
