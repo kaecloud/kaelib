@@ -302,7 +302,7 @@ class ServiceSchema(StrictSchema):
     minReadySeconds = fields.Int()
     progressDeadlineSeconds = fields.Int()
     strategy = fields.Nested(UpdateStrategy)
-    hostAliases = fields.List(fields.Nested(hostAliases))
+    hostAliases = fields.List(fields.Nested(HostAliases))
 
     containers = fields.List(fields.Nested(ContainerSpec), required=True)
     volumes = fields.List(fields.Dict(), validate=validate_pod_volumes, missing=[])
