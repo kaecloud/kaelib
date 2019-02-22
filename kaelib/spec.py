@@ -284,7 +284,7 @@ class ServicePort(StrictSchema):
     protocol = fields.Str(validate=validate_protocol, missing="TCP")
 
 
-class hostAliases(StrictSchema):
+class HostAliases(StrictSchema):
     ip = fields.Str(required=True)
     hostnames = fields.List(fields.Str(), required=True)
 
