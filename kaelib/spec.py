@@ -38,6 +38,26 @@ def validate_app_type(ss):
         raise ValidationError("app type should be `web`, `worker`")
 
 
+def validate_spark_apptype(ss):
+    if ss not in ("sparkapplication", "scheduledsparkapplication"):
+        raise ValidationError("spark apptype should be `sparkapplication`, `scheduledsparkapplication`")
+
+
+def validate_spark_type(ss):
+    if ss not in ("Python", "Scala"):
+        raise ValidationError("spark type should be `Python`, `Scala`")
+
+
+def validate_spark_mode(mode):
+    if mode not in ("client", "cluster"):
+        raise ValidationError("spark mode should be `client`, `cluster`")
+
+
+def validate_schedule(ss):
+    #TODO
+    pass
+
+
 def validate_tag(tag):
     regex = re.compile(r'[\w][\w.-]{0,127}$')
     if regex.match(tag) is None:
@@ -391,4 +411,61 @@ def load_job_specs(raw_data):
     :return:
     """
     data = job_schema.load(raw_data).data
+    return Dict(data)
+
+
+class SparkAppDriverSchema(StrictSchema):
+    cpu = fields.Int(missing=1)
+    memory = fields.Str(missing='512m')
+
+
+class SparkAppExecutorSchema(StrictSchema):
+    cpu = fields.Int(missing=1)
+    memory = fields.Str(missing='512m')
+    instances = fields.Int(missing=1)
+
+
+class DependencesSchema(StrictSchema):
+    jars = fields.List(fields.Str())
+    files = fields.List(fields.Str())
+    pyFiles = fields.List(fields.Str())
+
+
+class SparkAppSchema(StrictSchema):
+    apptype = fields.Str(required=True, validate=validate_spark_apptype)
+    appname = fields.Str(required=True)
+    role = fields.Str()
+    schedule = fields.Str(validate=validate_schedule)
+    concurrencyPolicy = fields.Str(missing='Allow')
+    type = fields.Str(validate=validate_spark_type, missing='Python')
+    image = fields.Str(required=True)
+    imagePullPolicy = fields.Str(missing='Always')
+    sparkVersion = fields.Str(missing='2.4.0')
+    arguments = fields.List(fields.Str())
+    nodeSelector = fields.Dict()
+    pythonVersion = fields.Str(missing='3')
+    driver = fields.Nested(SparkAppDriverSchema)
+    executor = fields.Nested(SparkAppExecutorSchema)
+    mainApplicationFile = fields.Str(required=True)
+    deps = fields.Nested(DependencesSchema)
+    mode = fields.Str(missing='cluster', validate=validate_spark_mode)
+    hadoopConfigMap = fields.Str()
+    serviceAccount = fields.Str()
+    sparkConfigMap = fields.Str()
+    comment = fields.Str()
+    sparkConf = fields.Dict()
+
+    @post_load
+    def finalize(self, data):
+        if data["apptype"] == "scheduledsparkapplication":
+            if "schedule" not in data.keys():
+                raise ValidationError("scheduledspark app must have `schedule` field")
+        return Dict(data)
+
+
+sparkapp_schema = SparkAppSchema()
+
+
+def load_sparkapp_specs(raw_data):
+    data = sparkapp_schema.load(raw_data).data
     return Dict(data)
