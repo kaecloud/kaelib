@@ -12,6 +12,7 @@ import os
 import pickle
 import logging
 import json as jsonlib
+import requests
 from requests import Session
 import websocket
 
@@ -83,7 +84,7 @@ class KaeAPI:
     def set_cluster(self, cluster):
         self.cluster = cluster
 
-    def request(self, path, method='GET', params=None, data=None, json=None, **kwargs):
+    def request(self, path, method='GET', params=None, data=None, json=None, files=None, **kwargs):
         """Wrap around requests.request method"""
         url = urljoin(self.base, path)
         params = params or {}
@@ -93,6 +94,7 @@ class KaeAPI:
                                     data=data,
                                     json=json,
                                     timeout=self.timeout,
+                                    files=files,
                                     **kwargs)
         code = resp.status_code
         if code != 200:
@@ -405,3 +407,33 @@ class KaeAPI:
             return self.request('job/%s/log' % jobname)
         else:
             return self.request_ws('ws/job/%s/log/events' % jobname)
+
+    def create_sparkapp(self, data=None, spec_text=None):
+        payload = data
+        if spec_text:
+            payload = {
+                'spec_text': spec_text,
+            }
+        return self.request('spark', method='POST', json=payload)
+
+    def list_sparkapp(self):
+        return self.request('spark', method='GET')
+
+    def delete_sparkapp(self, appname):
+        return self.request('spark/%s' % appname, method='DELETE')
+
+    def restart_sparkapp(self, appname):
+        return self.request('spark/%s/restart' % appname, method='PUT')
+
+    def get_sparkapp_log(self, appname, follow=False):
+        if follow is False:
+            return self.request('spark/%s/log' % appname)
+        else:
+            return self.request_ws('ws/spark/%s/log/events' % appname)
+
+    def upload(self, appname, filetype, files):
+        data = {
+            'fileType': filetype
+        }
+
+        return self.request('spark/%s/upload' % appname, data=data, files=files, method='POST')
