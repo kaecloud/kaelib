@@ -11,8 +11,8 @@ from kaelib.spec import (
 
 
 def test_validate_appname():
-    good_appnames = ['aaa', "AAA", 'aaa-bbb', 'a1-bbb', "aa_bb", "_"]
-    bad_appnames = ['1a_aa', "aaa*bb", "aaa#bbb", "-"]
+    good_appnames = ['aaa', 'aaa-bbb', 'a1-bbb']
+    bad_appnames = ['1a_aa', "aa_bb", "AAA", "aaa*bb", "aaa#bbb", "-"]
     for name in good_appnames:
         validate_appname(name)
     for name in bad_appnames:

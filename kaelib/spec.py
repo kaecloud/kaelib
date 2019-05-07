@@ -7,6 +7,8 @@ from marshmallow import Schema, fields, validates_schema, ValidationError, post_
 from humanfriendly import parse_size, InvalidSize
 
 
+_name_regex = re.compile(r'[a-z]([-a-z0-9]*[a-z0-9])?$')
+
 class StrictSchema(Schema):
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
@@ -22,14 +24,12 @@ class StrictSchema(Schema):
 
 
 def validate_appname(name):
-    regex = re.compile(r'[a-zA-Z_][\w-]*$')
-    if regex.match(name) is None:
+    if _name_regex.match(name) is None:
         raise ValidationError("appname is invalid")
 
 
 def validate_jobname(name):
-    regex = re.compile(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
-    if regex.match(name) is None:
+    if _name_regex.match(name) is None:
         raise ValidationError("jobname is invalid")
 
 
