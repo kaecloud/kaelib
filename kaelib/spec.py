@@ -274,7 +274,7 @@ class ContainerSpec(StrictSchema):
     env = fields.List(fields.Str(), validate=validate_env_list)
     tty = fields.Bool()
     workingDir = fields.Str(validate=validate_abs_path)
-    livessProbe = fields.Dict()
+    livenessProbe = fields.Dict()
     readinessProbe = fields.Dict()
     ports = fields.List(fields.Nested(ContainerPort))
 
