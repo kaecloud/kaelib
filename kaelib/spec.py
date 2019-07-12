@@ -454,6 +454,7 @@ class SparkAppSchema(StrictSchema):
     sparkConfigMap = fields.Str()
     comment = fields.Str()
     sparkConf = fields.Dict()
+    hadoopConf = fields.Dict()
 
     @post_load
     def finalize(self, data):
