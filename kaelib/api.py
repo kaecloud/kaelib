@@ -13,6 +13,8 @@ import pickle
 import logging
 import json as jsonlib
 import requests
+from requests.auth import HTTPBasicAuth
+
 from requests import Session
 import websocket
 
@@ -69,17 +71,32 @@ def recv_ws(ws):
 
 class KaeAPI:
     def __init__(self, host, version='v1', timeout=None,
-                 auth_token='', cluster='default'):
+                 access_token=None, cluster='default'):
         self.host = host
         self.version = version
         self.timeout = timeout
-        self.auth_token = auth_token
         self.cluster = cluster
 
         self.host = host
         self.base = '%s/api/%s/' % (self.host, version)
         self.session = Session()
-        self.session.headers.update({'X-Private-Token': auth_token})
+
+        if access_token:
+            self.session.headers.update({
+                'Authorization': 'Bearer {}'.format(access_token),
+            })
+
+    def set_access_token(self, access_token):
+        self.session.headers.update({
+            'Authorization': 'Bearer {}'.format(access_token),
+        })
+
+    def set_base_auth(self, user, password):
+        auth = HTTPBasicAuth(user, password)
+        auth(self.session)
+
+    def set_real_user(self, real_user):
+        self.session.headers.update({'X-Real-User': real_user})
 
     def set_cluster(self, cluster):
         self.cluster = cluster
@@ -109,11 +126,16 @@ class KaeAPI:
     def request_ws(self, path, params=None, data=None, json=None, ignore_decode_err=False):
         url = urljoin(self.base, path)
         url = re.sub(r'^http', 'ws', url)
-        options = {
-            'header': [
-                "X-Private-Token: {}".format(self.auth_token),
-            ],
+        headers = {
+            'Authorization': self.session.headers['Authorization'],
         }
+        if 'X-Real-User' in self.session.headers:
+            headers['X-Real-User'] = self.session.headers['X-Real-User']
+
+        options = {
+            'header': headers,
+        }
+
         ws = websocket.create_connection(url, **options)
         ws.send(jsonlib.dumps(json))
         for msg in recv_ws(ws):

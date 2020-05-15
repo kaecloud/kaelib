@@ -309,6 +309,19 @@ class HostAliases(StrictSchema):
     hostnames = fields.List(fields.Str(), required=True)
 
 
+class HPAMetric(StrictSchema):
+    name = fields.Str()
+    averageUtilization = fields.Int()
+    averageValue = fields.Str()
+    value = fields.Str()
+
+
+class HPA(StrictSchema):
+    minReplicas = fields.Int()
+    maxReplicas = fields.Int()
+    metrics = fields.List(fields.Nested(HPAMetric))
+
+
 class ServiceSchema(StrictSchema):
     user = fields.Str(missing="root")
     registry = fields.Str()
