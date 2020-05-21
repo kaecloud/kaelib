@@ -310,16 +310,39 @@ class HostAliases(StrictSchema):
 
 
 class HPAMetric(StrictSchema):
-    name = fields.Str()
+    name = fields.Str(required=True)
     averageUtilization = fields.Int()
     averageValue = fields.Str()
     value = fields.Str()
 
+    @validates_schema(pass_original=True)
+    def further_check(self, data, original_data):
+        name = data.get("name")
+        if name.lower() not in ("cpu", "memory"):
+            raise ValidationError("name msut be cpu or mempry")
+        averageUtilization = data.get("averageUtilization")
+        averageValue = data.get("averageValue")
+        value = data.get("value")
+
+        none_field_cnt = [averageUtilization, averageValue, value].count(None)
+        if none_field_cnt != 2:
+            raise ValidationError('you must specify one and only one field of averageUtilization, averageValue and value')
+
 
 class HPA(StrictSchema):
-    minReplicas = fields.Int()
-    maxReplicas = fields.Int()
+    minReplicas = fields.Int(missing=1)
+    maxReplicas = fields.Int(required=True)
     metrics = fields.List(fields.Nested(HPAMetric))
+
+    @validates_schema(pass_original=True)
+    def further_check(self, data, original_data):
+        minReplicas = data.get("minReplicas")
+        maxReplicas = data.get("maxReplicas")
+        if maxReplicas < minReplicas:
+            raise ValidationError("maxReplicas must not be less than minReplicas")
+        metrics = data.get("metrics")
+        if metrics is None or len(metrics) == 0:
+            raise ValidationError("at least one metric is needed for HPA")
 
 
 class ServiceSchema(StrictSchema):
@@ -339,6 +362,7 @@ class ServiceSchema(StrictSchema):
 
     containers = fields.List(fields.Nested(ContainerSpec), required=True)
     volumes = fields.List(fields.Dict(), validate=validate_pod_volumes, missing=[])
+    hpa = fields.Nested(HPA)
 
 
 service_schema = ServiceSchema()

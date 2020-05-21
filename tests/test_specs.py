@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 import yaml
 from kaelib.spec import (
     validate_appname, validate_tag, validate_docker_volumes,
-    UpdateStrategy, ConfigMapSchema, SecretSchema,
+    UpdateStrategy, ConfigMapSchema, SecretSchema, HPA
 )
 
 
@@ -129,3 +129,39 @@ rollingUpdate:
     # type validate
     with pytest.raises(ValidationError) as e:
         _ = schema.load({"type": "hahahn"}).data
+
+
+def test_hpa():
+    tmpl = """
+minReplicas: 2
+maxReplicas: 3
+metrics:
+  - name: cpu
+    averageUtilization: 50
+    """
+    dic = yaml.load(tmpl)
+    schema = HPA()
+    data = schema.load(dic).data
+    assert data["maxReplicas"] == 3
+    assert data["minReplicas"] == 2
+
+    # maxReplicas
+    new_dic = copy.deepcopy(dic)
+    new_dic["maxReplicas"] = 1
+    with pytest.raises(ValidationError) as e:
+        _ = schema.load(new_dic).data
+
+    new_dic = copy.deepcopy(dic)
+    new_dic.pop("metrics")
+    with pytest.raises(ValidationError) as e:
+        _ = schema.load(new_dic).data
+
+    new_dic = copy.deepcopy(dic)
+    new_dic["metrics"][0]["name"] = "haha"
+    with pytest.raises(ValidationError) as e:
+        _ = schema.load(new_dic).data
+
+    new_dic = copy.deepcopy(dic)
+    new_dic["metrics"][0]["averageValue"] = "haha"
+    with pytest.raises(ValidationError) as e:
+        _ = schema.load(new_dic).data
