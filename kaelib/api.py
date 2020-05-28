@@ -315,7 +315,7 @@ class KaeAPI:
             'app_yaml_name': app_yaml_name,
         }
         payload = {k: v for k, v in payload.items() if v is not None}
-        return self.request('app/%s/deploy' % appname, method='PUT', data=payload)
+        return self.request('app/%s/deploy' % appname, method='PUT', json=payload)
 
     def undeploy_app(self, appname, cluster=None):
         """undeploy app.
@@ -326,7 +326,7 @@ class KaeAPI:
         payload = {
             'cluster': cluster,
         }
-        return self.request('app/%s/undeploy' % appname, method='DELETE', data=payload)
+        return self.request('app/%s/undeploy' % appname, method='DELETE', json=payload)
 
     def deploy_app_canary(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None):
         """deploy canary version of specified app
@@ -347,7 +347,7 @@ class KaeAPI:
         }
 
         payload = {k: v for k, v in payload.items() if v is not None}
-        return self.request('app/%s/canary/deploy' % appname, method='PUT', data=payload)
+        return self.request('app/%s/canary/deploy' % appname, method='PUT', json=payload)
 
     def undeploy_app_canary(self, appname, cluster=None):
         """undeploy canary version of specified app
@@ -360,13 +360,13 @@ class KaeAPI:
         }
 
         payload = {k: v for k, v in payload.items() if v is not None}
-        return self.request('app/%s/canary/undeploy' % appname, method='DELETE', data=payload)
+        return self.request('app/%s/canary/undeploy' % appname, method='DELETE', json=payload)
 
     def delete_app_canary(self, appname):
         payload = {
             'cluster': self.cluster,
         }
-        return self.request('app/%s/canary' % appname, method='DELETE', data=payload)
+        return self.request('app/%s/canary' % appname, method='DELETE', json=payload)
 
     def scale_app(self, appname, cpus, memories, replicas, **kwargs):
         """deploy app.
@@ -382,7 +382,7 @@ class KaeAPI:
         }
 
         payload.update(kwargs)
-        return self.request('app/%s/scale' % appname, method='PUT', data=payload)
+        return self.request('app/%s/scale' % appname, method='PUT', json=payload)
 
     def set_app_abtesting_rules(self, appname, rules):
         """deploy app.
