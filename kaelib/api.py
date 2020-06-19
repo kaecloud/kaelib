@@ -276,11 +276,13 @@ class KaeAPI:
         }
         return self.request('app/register', method='POST', json=payload)
 
-    def rollback(self, appname, revision=0):
+    def rollback(self, appname, revision=0, deploy_id=None):
         payload = {
             'cluster': self.cluster,
             'revision': revision,
         }
+        if deploy_id is not None:
+            payload['deploy_id'] = deploy_id
         return self.request('app/%s/rollback' % appname, method='PUT', json=payload)
 
     def renew(self, appname):
@@ -297,7 +299,7 @@ class KaeAPI:
         return self.request_ws('ws/app/%s/build' % appname, json=payload,
                                ignore_decode_err=ignore_decode_err)
 
-    def deploy_app(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None):
+    def deploy_app(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None, use_newest_config=False):
         """deploy app.
         appname:
         tag: 要部署的版本号, git tag的值.
@@ -313,6 +315,7 @@ class KaeAPI:
             'memories': memories,
             'replicas': replicas,
             'app_yaml_name': app_yaml_name,
+            'use_newest_config': use_newest_config,
         }
         payload = {k: v for k, v in payload.items() if v is not None}
         return self.request('app/%s/deploy' % appname, method='PUT', json=payload)
@@ -328,7 +331,7 @@ class KaeAPI:
         }
         return self.request('app/%s/undeploy' % appname, method='DELETE', json=payload)
 
-    def deploy_app_canary(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None):
+    def deploy_app_canary(self, appname, tag, cpus=None, memories=None, replicas=None, app_yaml_name=None, use_newest_config=False):
         """deploy canary version of specified app
         appname:
         tag: 要部署的版本号, git tag的值.
@@ -344,6 +347,7 @@ class KaeAPI:
             'memories': memories,
             'replicas': replicas,
             'app_yaml_name': app_yaml_name,
+            'use_newest_config': use_newest_config,
         }
 
         payload = {k: v for k, v in payload.items() if v is not None}
@@ -368,20 +372,15 @@ class KaeAPI:
         }
         return self.request('app/%s/canary' % appname, method='DELETE', json=payload)
 
-    def scale_app(self, appname, cpus, memories, replicas, **kwargs):
+    def scale_app(self, appname, replicas):
         """deploy app.
-        cpu: 需要的cpu个数, 例如1, 或者1.5, 如果是public的部署, 传0.
-        memory: 最小4MB.
         replicas: app的副本数量
         """
         payload = {
             'cluster': self.cluster,
-            'cpus': cpus,
-            'memories': memories,
             'replicas': replicas,
         }
 
-        payload.update(kwargs)
         return self.request('app/%s/scale' % appname, method='PUT', json=payload)
 
     def set_app_abtesting_rules(self, appname, rules):
