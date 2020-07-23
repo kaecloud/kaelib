@@ -9,6 +9,14 @@ from humanfriendly import parse_size, InvalidSize
 
 _name_regex = re.compile(r'[a-z]([-a-z0-9]*[a-z0-9])?$')
 
+class IntOrStrField(fields.Field):
+    def _deserialize(self, value, attr, data, **kwargs):
+        if isinstance(value, str) or isinstance(value, int):
+            return value
+        else:
+            raise ValidationError('Field should be str or integer')
+
+
 class StrictSchema(Schema):
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
@@ -299,8 +307,9 @@ class ContainerSpec(StrictSchema):
 
 
 class ServicePort(StrictSchema):
+    name = fields.Str()
     port = fields.Int(required=True, validate=validate_port)
-    targetPort = fields.Int(validate=validate_port)
+    targetPort = IntOrStrField()
     protocol = fields.Str(validate=validate_protocol, missing="TCP")
 
 
@@ -352,7 +361,7 @@ class ServiceSchema(StrictSchema):
     ingressAnnotations = fields.Dict(validate=validate_str_dict)
     httpsOnly = fields.Bool(missing=True)
     mountpoints = fields.List(fields.Nested(Mountpoint), validate=validate_mountpoints, missing=[])
-    ports = fields.List(fields.Nested(ServicePort))
+    ports = fields.List(fields.Nested(ServicePort), required=True)
 
     replicas = fields.Int(missing=1)
     minReadySeconds = fields.Int()
@@ -363,6 +372,29 @@ class ServiceSchema(StrictSchema):
     containers = fields.List(fields.Nested(ContainerSpec), required=True)
     volumes = fields.List(fields.Dict(), validate=validate_pod_volumes, missing=[])
     hpa = fields.Nested(HPA)
+    @post_load
+    def finalize(self, data):
+        """add defaults to fields, and then construct a Dict"""
+        # validate service port
+        container_ports = [p for cont in data["containers"] for p in cont["ports"] ]
+        port_int_list, port_str_list = [], []
+        for p in container_ports:
+            if p.get("name") is not None:
+                port_str_list.append(p.get('name'))
+            port_int_list.append(p['containerPort'])
+
+        svc_ports = data.get("ports", [])
+        for p in svc_ports:
+            targetPort = p.get("targetPort")
+            if targetPort is None:
+                continue
+            if isinstance(targetPort, str):
+                if targetPort not in port_str_list:
+                    raise ValidationError("service targetPort doesn't stay in Container port list")
+            elif isinstance(targetPort, int):
+                if targetPort not in port_int_list:
+                    raise ValidationError("service targetPort doesn't stay in Container port list")
+        return Dict(data)
 
 
 service_schema = ServiceSchema()

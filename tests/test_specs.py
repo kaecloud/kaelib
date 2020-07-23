@@ -6,7 +6,8 @@ from marshmallow import ValidationError
 import yaml
 from kaelib.spec import (
     validate_appname, validate_tag, validate_docker_volumes,
-    UpdateStrategy, ConfigMapSchema, SecretSchema, HPA
+    UpdateStrategy, ConfigMapSchema, SecretSchema, HPA, 
+    AppSpecsSchema,
 )
 
 
@@ -51,6 +52,64 @@ def test_validate_docker_volumes():
 #     d, s, i = api.create_resource_dict(spec)
 #     pprint.pprint(d[0].to_dict())
 
+
+def test_svc_ports():
+    tmpl = """
+appname: hello
+type: web
+
+builds:
+- name: hello
+
+service:
+  user: root
+  replicas: 2
+  labels:
+    - proctype=router
+
+  mountpoints:
+    - host: hello.geetest.com
+      path: /
+  ports:
+  - port: 80
+    targetPort: 8080
+
+  containers:
+  - name: hello-world
+    # image: registry.cn-hangzhou.aliyuncs.com/kae/hello:0.1.1
+    imagePullPolicy: Always
+    # args: ["xx", "xx"]
+    command: ['hello-world']
+
+    env:                     # environments
+      - ENVA=a
+    tty: false               # whether allocate tty
+    # workingDir: xxx          # working dir
+
+    ports:
+    - name: http-port
+      containerPort: 8080
+    """
+    schema = AppSpecsSchema()
+    initial_dic = yaml.load(tmpl)
+    dic = copy.deepcopy(initial_dic)
+    data = schema.load(dic).data
+
+    dic = copy.deepcopy(initial_dic)
+    dic['service']['ports'][0]['targetPort'] = 1234
+    with pytest.raises(ValidationError):
+        schema.load(dic)
+
+    dic = copy.deepcopy(initial_dic)
+    dic['service']['ports'][0]['targetPort'] = 'pppp'
+    with pytest.raises(ValidationError):
+        schema.load(dic)
+
+    dic = copy.deepcopy(initial_dic)
+    dic['service']['ports'][0]['targetPort'] = 'http-port'
+    data = schema.load(dic).data
+    assert data['service']['ports'][0]['targetPort'] == 'http-port'
+    
 
 def test_configmap():
     tmpl = """
