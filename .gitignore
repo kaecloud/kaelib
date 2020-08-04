@@ -6,3 +6,5 @@ build
 *.egg
 dist
 .idea
+__pycache__
+.vscode
