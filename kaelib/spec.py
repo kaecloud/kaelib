@@ -376,7 +376,7 @@ class ServiceSchema(StrictSchema):
     def finalize(self, data):
         """add defaults to fields, and then construct a Dict"""
         # validate service port
-        container_ports = [p for cont in data["containers"] for p in cont["ports"] ]
+        container_ports = [p for cont in data["containers"] for p in cont.get("ports", []) ]
         port_int_list, port_str_list = [], []
         for p in container_ports:
             if p.get("name") is not None:

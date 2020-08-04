@@ -11,6 +11,43 @@ from kaelib.spec import (
 )
 
 
+test_tmpl = """
+appname: hello
+type: web
+
+builds:
+- name: hello
+
+service:
+  user: root
+  replicas: 2
+  labels:
+    - proctype=router
+
+  mountpoints:
+    - host: hello.geetest.com
+      path: /
+  ports:
+  - port: 80
+    targetPort: 8080
+
+  containers:
+  - name: hello-world
+    # image: registry.cn-hangzhou.aliyuncs.com/kae/hello:0.1.1
+    imagePullPolicy: Always
+    # args: ["xx", "xx"]
+    command: ['hello-world']
+
+    env:                     # environments
+      - ENVA=a
+    tty: false               # whether allocate tty
+    # workingDir: xxx          # working dir
+
+    ports:
+    - name: http-port
+      containerPort: 8080
+"""
+
 def test_validate_appname():
     good_appnames = ['aaa', 'aaa-bbb', 'a1-bbb']
     bad_appnames = ['1a_aa', "aa_bb", "AAA", "aaa*bb", "aaa#bbb", "-"]
@@ -54,52 +91,18 @@ def test_validate_docker_volumes():
 
 
 def test_svc_ports():
-    tmpl = """
-appname: hello
-type: web
-
-builds:
-- name: hello
-
-service:
-  user: root
-  replicas: 2
-  labels:
-    - proctype=router
-
-  mountpoints:
-    - host: hello.geetest.com
-      path: /
-  ports:
-  - port: 80
-    targetPort: 8080
-
-  containers:
-  - name: hello-world
-    # image: registry.cn-hangzhou.aliyuncs.com/kae/hello:0.1.1
-    imagePullPolicy: Always
-    # args: ["xx", "xx"]
-    command: ['hello-world']
-
-    env:                     # environments
-      - ENVA=a
-    tty: false               # whether allocate tty
-    # workingDir: xxx          # working dir
-
-    ports:
-    - name: http-port
-      containerPort: 8080
-    """
     schema = AppSpecsSchema()
-    initial_dic = yaml.load(tmpl)
+    initial_dic = yaml.safe_load(test_tmpl)
     dic = copy.deepcopy(initial_dic)
     data = schema.load(dic).data
 
+    # targetPort is not equal to port in container
     dic = copy.deepcopy(initial_dic)
     dic['service']['ports'][0]['targetPort'] = 1234
     with pytest.raises(ValidationError):
         schema.load(dic)
 
+    # targetPort is not a valid container port name
     dic = copy.deepcopy(initial_dic)
     dic['service']['ports'][0]['targetPort'] = 'pppp'
     with pytest.raises(ValidationError):
@@ -110,6 +113,18 @@ service:
     data = schema.load(dic).data
     assert data['service']['ports'][0]['targetPort'] == 'http-port'
     
+    # no service port 
+    dic = copy.deepcopy(initial_dic)
+    dic['service'].pop('ports')
+    with pytest.raises(ValidationError):
+        data = schema.load(dic).data
+
+    # no container port
+    dic = copy.deepcopy(initial_dic)
+    dic['service']['containers'][0].pop("ports")
+    with pytest.raises(ValidationError):
+        data = schema.load(dic).data
+
 
 def test_configmap():
     tmpl = """
@@ -117,7 +132,7 @@ dir: /dir1
 key: key1
 filename: name1
     """
-    initial_dic = yaml.load(tmpl)
+    initial_dic = yaml.safe_load(tmpl)
     schema = ConfigMapSchema()
 
     dic = copy.deepcopy(initial_dic)
@@ -149,7 +164,7 @@ keyList:
   - key1
   - key2
     """
-    initial_dic = yaml.load(tmpl)
+    initial_dic = yaml.safe_load(tmpl)
     schema = SecretSchema()
 
     dic = copy.deepcopy(initial_dic)
@@ -172,7 +187,7 @@ rollingUpdate:
   maxSurge: 25%
   maxUnavailable: 35%
     """
-    dic = yaml.load(tmpl)
+    dic = yaml.safe_load(tmpl)
     schema = UpdateStrategy()
     data = schema.load(dic).data
     assert data['rollingUpdate']['maxSurge'] == '25%'
@@ -198,7 +213,7 @@ metrics:
   - name: cpu
     averageUtilization: 50
     """
-    dic = yaml.load(tmpl)
+    dic = yaml.safe_load(tmpl)
     schema = HPA()
     data = schema.load(dic).data
     assert data["maxReplicas"] == 3
